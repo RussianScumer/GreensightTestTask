@@ -2,48 +2,42 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\User;
+use App\Http\Actions\UserAction;
+use Exception;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 
 class UserController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     */
-    public function index()
+    public function registration(Request $request)
     {
-
-    }
-
-    /**
-     * Store a newly created resource in storage.
-     */
-    public function store(Request $request)
-    {
-
-    }
-
-    /**
-     * Display the specified resource.
-     */
-    public function show(User $user)
-    {
-
-    }
-
-    /**
-     * Update the specified resource in storage.
-     */
-    public function update(Request $request, User $user)
-    {
-
-    }
-
-    /**
-     * Remove the specified resource from storage.
-     */
-    public function destroy(User $user)
-    {
-
+        try {
+            $validated = $request->validate([
+                'name' => 'required|string',
+                'lastName' => 'required|string',
+                'email' => 'required|email',
+                'password' => 'required|string',
+                'forconfirmpassword' => 'required|string'
+            ]);
+        } catch (Exception $e){
+            return response()->json(['error' => $e->getMessage()], 400);
+        }
+        $usersConstArray = UserAction::createUsers();
+        try {
+            if($validated['password'] != $validated['forconfirmpassword'])
+            {
+                throw new Exception("Пароли не совпадают");
+            }
+            foreach ($usersConstArray as $value) {
+                if ($value->email == $validated['email']) {
+                    throw new Exception("Пользователь с таким email уже существует");
+                }
+            }
+        } catch (Exception $e) {
+            Log::alert($e->getMessage());
+            return response()->json(['error' => $e->getMessage()], 400);
+        }
+        Log::info("Успешная регистрация" . " " .$validated['email']);
+        return response()->json(['data' => 'Успешная регистрация'], 200);
     }
 }
